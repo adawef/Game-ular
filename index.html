@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Snake Pro Custom</title>
+<title>Snake</title>
 <style>
 body {
   text-align:center;
@@ -98,6 +98,8 @@ const ctx = canvas.getContext("2d");
 
 const GRID = 20;
 const SIZE = 600;
+let touchStartX = 0;
+let touchStartY = 0;
 
 let flash = 0;
 
@@ -355,6 +357,37 @@ document.addEventListener("keydown",e=>{
     if(e.key==="l"&&p3.dx===0){p3.dx=GRID;p3.dy=0;}
   }
   function setDir(x,y){
+    canvas.addEventListener("touchstart", e=>{
+  let touch = e.touches[0];
+  touchStartX = touch.clientX;
+  touchStartY = touch.clientY;
+});
+
+canvas.addEventListener("touchend", e=>{
+  let touch = e.changedTouches[0];
+  let dx = touch.clientX - touchStartX;
+  let dy = touch.clientY - touchStartY;
+
+  let p = players[0]; // fokus player 1
+  if(!p) return;
+
+  // tentukan arah dominan
+  if(Math.abs(dx) > Math.abs(dy)){
+    // horizontal
+    if(dx > 0 && p.dx === 0){
+      p.dx = GRID; p.dy = 0;
+    } else if(dx < 0 && p.dx === 0){
+      p.dx = -GRID; p.dy = 0;
+    }
+  } else {
+    // vertical
+    if(dy > 0 && p.dy === 0){
+      p.dx = 0; p.dy = GRID;
+    } else if(dy < 0 && p.dy === 0){
+      p.dx = 0; p.dy = -GRID;
+    }
+  }
+});
   let p = players[0]; // player 1 (solo)
 
   if(!p) return;
