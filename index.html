@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Snake</title>
+<title>Snake Pro Custom</title>
 <style>
 body {
   text-align:center;
@@ -26,19 +26,14 @@ canvas {
   border:2px solid #38bdf8;
   border-radius:10px;
 }
-  .controls button {
+
+/* kontrol HP */
+.controls button {
   width:60px;
   height:60px;
   font-size:20px;
   margin:5px;
 }
-  <div class="controls">
-  <br>
-  <button onclick="setDir(0,-20)">⬆</button><br>
-  <button onclick="setDir(-20,0)">⬅</button>
-  <button onclick="setDir(20,0)">➡</button><br>
-  <button onclick="setDir(0,20)">⬇</button>
-</div>
 </style>
 </head>
 <body>
@@ -92,16 +87,24 @@ canvas {
 
 <canvas id="game" width="600" height="600"></canvas>
 
+<!-- tombol HP -->
+<div class="controls">
+  <br>
+  <button onclick="setDir(0,-20)">⬆</button><br>
+  <button onclick="setDir(-20,0)">⬅</button>
+  <button onclick="setDir(20,0)">➡</button><br>
+  <button onclick="setDir(0,20)">⬇</button>
+</div>
+
 <script>
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
 const GRID = 20;
 const SIZE = 600;
+
 let touchStartX = 0;
 let touchStartY = 0;
-
-let flash = 0;
 
 let game = {
   running:false,
@@ -122,7 +125,7 @@ function beep(freq){
   setTimeout(()=>o.stop(),100);
 }
 
-// GRID BACKGROUND
+// GRID
 function drawGrid(){
   ctx.strokeStyle = "rgba(255,255,255,0.05)";
   for(let i=0;i<SIZE;i+=GRID){
@@ -155,7 +158,6 @@ let food;
 
 // START
 function startGame(){
-
   let count = parseInt(document.getElementById("playerCount").value);
 
   let skins = [
@@ -243,13 +245,10 @@ function checkCollision(){
 
 // DRAW
 function draw(){
-
-  // background + grid
   ctx.fillStyle="#020617";
   ctx.fillRect(0,0,SIZE,SIZE);
   drawGrid();
 
-  // FOOD (animasi pulse)
   let pulse = Math.sin(Date.now()*0.005)*2;
 
   ctx.fillStyle="#ef4444";
@@ -257,7 +256,6 @@ function draw(){
   ctx.arc(food.x+10, food.y+10, 8 + pulse, 0, Math.PI*2);
   ctx.fill();
 
-  // SNAKE (glow + rounded)
   players.forEach(p=>{
     if(!p.alive) return;
 
@@ -274,19 +272,11 @@ function draw(){
     ctx.shadowBlur = 0;
   });
 
-  // SCORE
   ctx.fillStyle="white";
   ctx.font="16px Arial";
   players.forEach((p,i)=>{
     ctx.fillText("P"+(i+1)+": "+p.score,10,20+i*20);
   });
-
-  // FLASH EFFECT
-  if(flash > 0){
-    ctx.fillStyle = "rgba(255,255,255,"+flash+")";
-    ctx.fillRect(0,0,SIZE,SIZE);
-    flash -= 0.05;
-  }
 }
 
 // LOOP
@@ -298,15 +288,12 @@ function gameLoop(){
 
   let alive = players.filter(p=>p.alive);
 
-  // SINGLE PLAYER
   if(players.length === 1){
     if(!players[0].alive){
       endGame(null);
       return;
     }
-  }
-  // MULTI
-  else{
+  } else {
     if(alive.length <= 1){
       endGame(alive[0]);
       return;
@@ -332,7 +319,7 @@ function endGame(winner){
   },100);
 }
 
-// INPUT
+// KEYBOARD
 document.addEventListener("keydown",e=>{
   let [p1,p2,p3]=players;
 
@@ -356,8 +343,21 @@ document.addEventListener("keydown",e=>{
     if(e.key==="j"&&p3.dx===0){p3.dx=-GRID;p3.dy=0;}
     if(e.key==="l"&&p3.dx===0){p3.dx=GRID;p3.dy=0;}
   }
-  function setDir(x,y){
-    canvas.addEventListener("touchstart", e=>{
+});
+
+// BUTTON HP
+function setDir(x,y){
+  let p = players[0];
+  if(!p) return;
+
+  if((x!==0 && p.dx===0) || (y!==0 && p.dy===0)){
+    p.dx = x;
+    p.dy = y;
+  }
+}
+
+// SWIPE
+canvas.addEventListener("touchstart", e=>{
   let touch = e.touches[0];
   touchStartX = touch.clientX;
   touchStartY = touch.clientY;
@@ -368,35 +368,22 @@ canvas.addEventListener("touchend", e=>{
   let dx = touch.clientX - touchStartX;
   let dy = touch.clientY - touchStartY;
 
-  let p = players[0]; // fokus player 1
+  let p = players[0];
   if(!p) return;
 
-  // tentukan arah dominan
   if(Math.abs(dx) > Math.abs(dy)){
-    // horizontal
     if(dx > 0 && p.dx === 0){
       p.dx = GRID; p.dy = 0;
     } else if(dx < 0 && p.dx === 0){
       p.dx = -GRID; p.dy = 0;
     }
   } else {
-    // vertical
     if(dy > 0 && p.dy === 0){
       p.dx = 0; p.dy = GRID;
     } else if(dy < 0 && p.dy === 0){
       p.dx = 0; p.dy = -GRID;
     }
   }
-});
-  let p = players[0]; // player 1 (solo)
-
-  if(!p) return;
-
-  if((x!==0 && p.dx===0) || (y!==0 && p.dy===0)){
-    p.dx = x;
-    p.dy = y;
-  }
-}
 });
 </script>
 
