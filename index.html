@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Snake 4 Player</title>
+<style>
+body {
+  text-align:center;
+  background:#0f172a;
+  color:white;
+  font-family:sans-serif;
+}
+
+canvas {
+  display:block;
+  margin:auto;
+  background:#020617;
+  border:2px solid #38bdf8;
+  border-radius:10px;
+}
+</style>
+</head>
+<body>
+
+<h2>🐍 Snake 4 Player</h2>
+<p>P1: Arrow | P2: WASD | P3: IJKL | P4: TFGH</p>
+
+<canvas id="game" width="800" height="800"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+let grid = 20;
+let players = [];
+let food;
+let interval;
+
+// buat player
+function createPlayer(x,y,color){
+  return {
+    snake:[{x,y}],
+    dx:grid,
+    dy:0,
+    color,
+    alive:true,
+    score:0
+  };
+}
+
+function startGame(){
+  players = [
+    createPlayer(100,100,"#22c55e"),
+    createPlayer(700,100,"#06b6d4"),
+    createPlayer(100,700,"#facc15"),
+    createPlayer(700,700,"#ef4444")
+  ];
+
+  food = randomFood();
+
+  clearInterval(interval);
+  interval = setInterval(gameLoop,100);
+}
+
+function randomFood(){
+  return {
+    x: Math.floor(Math.random()*40)*grid,
+    y: Math.floor(Math.random()*40)*grid
+  };
+}
+
+function movePlayer(p){
+  if(!p.alive) return;
+
+  let head = {x:p.snake[0].x+p.dx, y:p.snake[0].y+p.dy};
+
+  // tembok
+  if(head.x<0||head.y<0||head.x>=800||head.y>=800){
+    p.alive=false;
+    return;
+  }
+
+  // diri sendiri
+  for(let part of p.snake){
+    if(head.x===part.x && head.y===part.y){
+      p.alive=false;
+      return;
+    }
+  }
+
+  p.snake.unshift(head);
+
+  if(head.x===food.x && head.y===food.y){
+    p.score++;
+    food=randomFood();
+  } else {
+    p.snake.pop();
+  }
+}
+
+function checkCollision(){
+  players.forEach(p=>{
+    players.forEach(other=>{
+      if(p!==other && p.alive){
+        let head = p.snake[0];
+        for(let part of other.snake){
+          if(head.x===part.x && head.y===part.y){
+            p.alive=false;
+          }
+        }
+      }
+    });
+  });
+}
+
+function draw(){
+  ctx.clearRect(0,0,800,800);
+
+  // food
+  ctx.fillStyle="red";
+  ctx.fillRect(food.x,food.y,grid,grid);
+
+  players.forEach(p=>{
+    if(!p.alive) return;
+    p.snake.forEach((part,i)=>{
+      ctx.fillStyle = i==0 ? p.color : "#4ade80";
+      ctx.fillRect(part.x,part.y,grid,grid);
+    });
+  });
+
+  // score
+  ctx.fillStyle="white";
+  players.forEach((p,i)=>{
+    ctx.fillText("P"+(i+1)+": "+p.score,10,20+20*i);
+  });
+}
+
+function gameLoop(){
+  players.forEach(movePlayer);
+  checkCollision();
+
+  let alivePlayers = players.filter(p=>p.alive);
+
+  if(alivePlayers.length<=1){
+    let winner = alivePlayers[0];
+    setTimeout(()=>{
+      alert(winner ? "Player Menang!" : "Semua kalah!");
+      location.reload();
+    },100);
+    return;
+  }
+
+  draw();
+}
+
+// INPUT
+document.addEventListener("keydown", e=>{
+  let p1=players[0], p2=players[1], p3=players[2], p4=players[3];
+
+  if(p1){
+    if(e.key=="ArrowUp"&&p1.dy===0){p1.dx=0;p1.dy=-grid;}
+    if(e.key=="ArrowDown"&&p1.dy===0){p1.dx=0;p1.dy=grid;}
+    if(e.key=="ArrowLeft"&&p1.dx===0){p1.dx=-grid;p1.dy=0;}
+    if(e.key=="ArrowRight"&&p1.dx===0){p1.dx=grid;p1.dy=0;}
+  }
+
+  if(p2){
+    if(e.key=="w"&&p2.dy===0){p2.dx=0;p2.dy=-grid;}
+    if(e.key=="s"&&p2.dy===0){p2.dx=0;p2.dy=grid;}
+    if(e.key=="a"&&p2.dx===0){p2.dx=-grid;p2.dy=0;}
+    if(e.key=="d"&&p2.dx===0){p2.dx=grid;p2.dy=0;}
+  }
+
+  if(p3){
+    if(e.key=="i"&&p3.dy===0){p3.dx=0;p3.dy=-grid;}
+    if(e.key=="k"&&p3.dy===0){p3.dx=0;p3.dy=grid;}
+    if(e.key=="j"&&p3.dx===0){p3.dx=-grid;p3.dy=0;}
+    if(e.key=="l"&&p3.dx===0){p3.dx=grid;p3.dy=0;}
+  }
+
+  if(p4){
+    if(e.key=="t"&&p4.dy===0){p4.dx=0;p4.dy=-grid;}
+    if(e.key=="g"&&p4.dy===0){p4.dx=0;p4.dy=grid;}
+    if(e.key=="f"&&p4.dx===0){p4.dx=-grid;p4.dy=0;}
+    if(e.key=="h"&&p4.dx===0){p4.dx=grid;p4.dy=0;}
+  }
+});
+
+startGame();
+</script>
+
+</body>
+</html>
