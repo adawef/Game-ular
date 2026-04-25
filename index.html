@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Snake Pro 3 Player</title>
+<title>Snake Pro Custom</title>
 <style>
 body {
   text-align:center;
@@ -26,25 +26,64 @@ canvas {
   border:2px solid #38bdf8;
   border-radius:10px;
 }
-
-.controls button {
+  .controls button {
   width:60px;
   height:60px;
   font-size:20px;
+  margin:5px;
 }
+  <div class="controls">
+  <br>
+  <button onclick="setDir(0,-20)">⬆</button><br>
+  <button onclick="setDir(-20,0)">⬅</button>
+  <button onclick="setDir(20,0)">➡</button><br>
+  <button onclick="setDir(0,20)">⬇</button>
+</div>
 </style>
 </head>
 <body>
 
 <div class="menu">
-<h2>🐍 Snake Pro 3 Player</h2>
+<h2>🐍 Snake Pro Custom</h2>
 
+<label>Jumlah Player:</label>
+<select id="playerCount">
+<option value="1">1 Player</option>
+<option value="2">2 Player</option>
+<option value="3" selected>3 Player</option>
+</select>
+<br>
+
+<label>Difficulty:</label>
 <select id="difficulty">
 <option value="140">Easy</option>
 <option value="100" selected>Medium</option>
 <option value="70">Hard</option>
 </select>
+<br>
 
+<label>Skin P1:</label>
+<select id="skin1">
+<option value="#22c55e">Green</option>
+<option value="#f97316">Orange</option>
+<option value="#e11d48">Red</option>
+</select>
+
+<label>Skin P2:</label>
+<select id="skin2">
+<option value="#06b6d4">Blue</option>
+<option value="#a855f7">Purple</option>
+<option value="#facc15">Yellow</option>
+</select>
+
+<label>Skin P3:</label>
+<select id="skin3">
+<option value="#facc15">Yellow</option>
+<option value="#14b8a6">Teal</option>
+<option value="#ef4444">Red</option>
+</select>
+
+<br>
 <button onclick="startGame()">Start</button>
 
 <p>High Score: <span id="highScore">0</span></p>
@@ -53,42 +92,51 @@ canvas {
 
 <canvas id="game" width="600" height="600"></canvas>
 
-<div class="controls">
-<br>
-<button onclick="setDir(0,-20)">⬆</button><br>
-<button onclick="setDir(-20,0)">⬅</button>
-<button onclick="setDir(20,0)">➡</button><br>
-<button onclick="setDir(0,20)">⬇</button>
-</div>
-
 <script>
-// ===== SETUP =====
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
 const GRID = 20;
 const SIZE = 600;
 
+let flash = 0;
+
 let game = {
-  running: false,
-  speed: 100,
-  interval: null,
+  running:false,
+  speed:100,
+  interval:null,
   highScore: localStorage.getItem("snakeHigh") || 0
 };
 
 document.getElementById("highScore").innerText = game.highScore;
 
-// ===== SOUND =====
+// SOUND
 function beep(freq){
-  let a = new (window.AudioContext || window.webkitAudioContext)();
-  let o = a.createOscillator();
-  o.frequency.value = freq;
+  let a=new (window.AudioContext||window.webkitAudioContext)();
+  let o=a.createOscillator();
+  o.frequency.value=freq;
   o.connect(a.destination);
   o.start();
   setTimeout(()=>o.stop(),100);
 }
 
-// ===== PLAYER =====
+// GRID BACKGROUND
+function drawGrid(){
+  ctx.strokeStyle = "rgba(255,255,255,0.05)";
+  for(let i=0;i<SIZE;i+=GRID){
+    ctx.beginPath();
+    ctx.moveTo(i,0);
+    ctx.lineTo(i,SIZE);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0,i);
+    ctx.lineTo(SIZE,i);
+    ctx.stroke();
+  }
+}
+
+// PLAYER
 function createPlayer(x,y,color){
   return {
     snake:[{x,y}],
@@ -100,27 +148,36 @@ function createPlayer(x,y,color){
   };
 }
 
-let players = [];
+let players=[];
 let food;
 
-// ===== START =====
+// START
 function startGame(){
-  players = [
-    createPlayer(100,100,"#22c55e"), // P1
-    createPlayer(500,100,"#06b6d4"), // P2
-    createPlayer(300,500,"#facc15")  // P3
+
+  let count = parseInt(document.getElementById("playerCount").value);
+
+  let skins = [
+    document.getElementById("skin1").value,
+    document.getElementById("skin2").value,
+    document.getElementById("skin3").value
   ];
 
-  food = randomFood();
+  players=[];
 
-  game.speed = parseInt(document.getElementById("difficulty").value);
-  game.running = true;
+  if(count>=1) players.push(createPlayer(100,100,skins[0]));
+  if(count>=2) players.push(createPlayer(500,100,skins[1]));
+  if(count>=3) players.push(createPlayer(300,500,skins[2]));
+
+  food=randomFood();
+
+  game.speed=parseInt(document.getElementById("difficulty").value);
+  game.running=true;
 
   clearInterval(game.interval);
-  game.interval = setInterval(gameLoop, game.speed);
+  game.interval=setInterval(gameLoop,game.speed);
 }
 
-// ===== FOOD =====
+// FOOD
 function randomFood(){
   return {
     x: Math.floor(Math.random()*(SIZE/GRID))*GRID,
@@ -128,26 +185,24 @@ function randomFood(){
   };
 }
 
-// ===== MOVE =====
+// MOVE
 function movePlayer(p){
   if(!p.alive) return;
 
-  let head = {
-    x: p.snake[0].x + p.dx,
-    y: p.snake[0].y + p.dy
+  let head={
+    x:p.snake[0].x+p.dx,
+    y:p.snake[0].y+p.dy
   };
 
-  // tembok
   if(head.x<0||head.y<0||head.x>=SIZE||head.y>=SIZE){
-    p.alive = false;
+    p.alive=false;
     beep(100);
     return;
   }
 
-  // diri sendiri
   for(let part of p.snake){
     if(head.x===part.x && head.y===part.y){
-      p.alive = false;
+      p.alive=false;
       beep(100);
       return;
     }
@@ -155,29 +210,28 @@ function movePlayer(p){
 
   p.snake.unshift(head);
 
-  // makan
   if(head.x===food.x && head.y===food.y){
     p.score++;
     beep(500);
-    food = randomFood();
+    food=randomFood();
   } else {
     p.snake.pop();
   }
 }
 
-// ===== COLLISION =====
+// COLLISION
 function checkCollision(){
   players.forEach(p=>{
     if(!p.alive) return;
 
-    let head = p.snake[0];
+    let head=p.snake[0];
 
-    players.forEach(other=>{
-      if(p===other) return;
+    players.forEach(o=>{
+      if(p===o) return;
 
-      for(let part of other.snake){
+      for(let part of o.snake){
         if(head.x===part.x && head.y===part.y){
-          p.alive = false;
+          p.alive=false;
           beep(100);
         }
       }
@@ -185,31 +239,55 @@ function checkCollision(){
   });
 }
 
-// ===== DRAW =====
+// DRAW
 function draw(){
-  ctx.clearRect(0,0,SIZE,SIZE);
 
-  // food
-  ctx.fillStyle="red";
-  ctx.fillRect(food.x,food.y,GRID,GRID);
+  // background + grid
+  ctx.fillStyle="#020617";
+  ctx.fillRect(0,0,SIZE,SIZE);
+  drawGrid();
 
+  // FOOD (animasi pulse)
+  let pulse = Math.sin(Date.now()*0.005)*2;
+
+  ctx.fillStyle="#ef4444";
+  ctx.beginPath();
+  ctx.arc(food.x+10, food.y+10, 8 + pulse, 0, Math.PI*2);
+  ctx.fill();
+
+  // SNAKE (glow + rounded)
   players.forEach(p=>{
     if(!p.alive) return;
 
+    ctx.shadowBlur = 10;
+    ctx.shadowColor = p.color;
+
     p.snake.forEach((part,i)=>{
       ctx.fillStyle = i===0 ? p.color : "#4ade80";
-      ctx.fillRect(part.x,part.y,GRID,GRID);
+      ctx.beginPath();
+      ctx.roundRect(part.x,part.y,GRID,GRID,6);
+      ctx.fill();
     });
+
+    ctx.shadowBlur = 0;
   });
 
-  // score
+  // SCORE
   ctx.fillStyle="white";
+  ctx.font="16px Arial";
   players.forEach((p,i)=>{
     ctx.fillText("P"+(i+1)+": "+p.score,10,20+i*20);
   });
+
+  // FLASH EFFECT
+  if(flash > 0){
+    ctx.fillStyle = "rgba(255,255,255,"+flash+")";
+    ctx.fillRect(0,0,SIZE,SIZE);
+    flash -= 0.05;
+  }
 }
 
-// ===== LOOP =====
+// LOOP
 function gameLoop(){
   if(!game.running) return;
 
@@ -218,33 +296,43 @@ function gameLoop(){
 
   let alive = players.filter(p=>p.alive);
 
-  if(alive.length <= 1){
-    endGame(alive[0]);
-    return;
+  // SINGLE PLAYER
+  if(players.length === 1){
+    if(!players[0].alive){
+      endGame(null);
+      return;
+    }
+  }
+  // MULTI
+  else{
+    if(alive.length <= 1){
+      endGame(alive[0]);
+      return;
+    }
   }
 
   draw();
 }
 
-// ===== END =====
+// END
 function endGame(winner){
-  game.running = false;
+  game.running=false;
   clearInterval(game.interval);
 
-  let best = Math.max(...players.map(p=>p.score));
-  if(best > game.highScore){
-    localStorage.setItem("snakeHigh", best);
+  let best=Math.max(...players.map(p=>p.score));
+  if(best>game.highScore){
+    localStorage.setItem("snakeHigh",best);
   }
 
   setTimeout(()=>{
-    alert(winner ? "Pemenang!" : "Semua kalah!");
+    alert(winner ? "Pemenang!" : "Game Over!");
     location.reload();
   },100);
 }
 
-// ===== INPUT =====
-document.addEventListener("keydown", e=>{
-  let [p1,p2,p3] = players;
+// INPUT
+document.addEventListener("keydown",e=>{
+  let [p1,p2,p3]=players;
 
   if(p1){
     if(e.key==="ArrowUp"&&p1.dy===0){p1.dx=0;p1.dy=-GRID;}
@@ -266,18 +354,17 @@ document.addEventListener("keydown", e=>{
     if(e.key==="j"&&p3.dx===0){p3.dx=-GRID;p3.dy=0;}
     if(e.key==="l"&&p3.dx===0){p3.dx=GRID;p3.dy=0;}
   }
-});
+  function setDir(x,y){
+  let p = players[0]; // player 1 (solo)
 
-// HP hanya P1
-function setDir(x,y){
-  let p1 = players[0];
-  if(!p1) return;
+  if(!p) return;
 
-  if((x!==0 && p1.dx===0) || (y!==0 && p1.dy===0)){
-    p1.dx=x;
-    p1.dy=y;
+  if((x!==0 && p.dx===0) || (y!==0 && p.dy===0)){
+    p.dx = x;
+    p.dy = y;
   }
 }
+});
 </script>
 
 </body>
