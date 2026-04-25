@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Snake Pro 4 Player Clean</title>
+<title>Snake Pro 3 Player</title>
 <style>
 body {
   text-align:center;
@@ -26,12 +26,18 @@ canvas {
   border:2px solid #38bdf8;
   border-radius:10px;
 }
+
+.controls button {
+  width:60px;
+  height:60px;
+  font-size:20px;
+}
 </style>
 </head>
 <body>
 
 <div class="menu">
-<h2>🐍 Snake Pro 4 Player</h2>
+<h2>🐍 Snake Pro 3 Player</h2>
 
 <select id="difficulty">
 <option value="140">Easy</option>
@@ -42,10 +48,18 @@ canvas {
 <button onclick="startGame()">Start</button>
 
 <p>High Score: <span id="highScore">0</span></p>
-<p>P1: Arrow | P2: WASD | P3: IJKL | P4: TFGH</p>
+<p>P1: Arrow | P2: WASD | P3: IJKL</p>
 </div>
 
-<canvas id="game" width="800" height="800"></canvas>
+<canvas id="game" width="600" height="600"></canvas>
+
+<div class="controls">
+<br>
+<button onclick="setDir(0,-20)">⬆</button><br>
+<button onclick="setDir(-20,0)">⬅</button>
+<button onclick="setDir(20,0)">➡</button><br>
+<button onclick="setDir(0,20)">⬇</button>
+</div>
 
 <script>
 // ===== SETUP =====
@@ -53,7 +67,7 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
 const GRID = 20;
-const SIZE = 800;
+const SIZE = 600;
 
 let game = {
   running: false,
@@ -63,6 +77,16 @@ let game = {
 };
 
 document.getElementById("highScore").innerText = game.highScore;
+
+// ===== SOUND =====
+function beep(freq){
+  let a = new (window.AudioContext || window.webkitAudioContext)();
+  let o = a.createOscillator();
+  o.frequency.value = freq;
+  o.connect(a.destination);
+  o.start();
+  setTimeout(()=>o.stop(),100);
+}
 
 // ===== PLAYER =====
 function createPlayer(x,y,color){
@@ -82,16 +106,14 @@ let food;
 // ===== START =====
 function startGame(){
   players = [
-    createPlayer(100,100,"#22c55e"),
-    createPlayer(700,100,"#06b6d4"),
-    createPlayer(100,700,"#facc15"),
-    createPlayer(700,700,"#ef4444")
+    createPlayer(100,100,"#22c55e"), // P1
+    createPlayer(500,100,"#06b6d4"), // P2
+    createPlayer(300,500,"#facc15")  // P3
   ];
 
   food = randomFood();
 
   game.speed = parseInt(document.getElementById("difficulty").value);
-
   game.running = true;
 
   clearInterval(game.interval);
@@ -101,8 +123,8 @@ function startGame(){
 // ===== FOOD =====
 function randomFood(){
   return {
-    x: Math.floor(Math.random()* (SIZE/GRID)) * GRID,
-    y: Math.floor(Math.random()* (SIZE/GRID)) * GRID
+    x: Math.floor(Math.random()*(SIZE/GRID))*GRID,
+    y: Math.floor(Math.random()*(SIZE/GRID))*GRID
   };
 }
 
@@ -116,8 +138,9 @@ function movePlayer(p){
   };
 
   // tembok
-  if(head.x<0 || head.y<0 || head.x>=SIZE || head.y>=SIZE){
+  if(head.x<0||head.y<0||head.x>=SIZE||head.y>=SIZE){
     p.alive = false;
+    beep(100);
     return;
   }
 
@@ -125,6 +148,7 @@ function movePlayer(p){
   for(let part of p.snake){
     if(head.x===part.x && head.y===part.y){
       p.alive = false;
+      beep(100);
       return;
     }
   }
@@ -134,13 +158,14 @@ function movePlayer(p){
   // makan
   if(head.x===food.x && head.y===food.y){
     p.score++;
+    beep(500);
     food = randomFood();
   } else {
     p.snake.pop();
   }
 }
 
-// ===== COLLISION ANTAR PLAYER =====
+// ===== COLLISION =====
 function checkCollision(){
   players.forEach(p=>{
     if(!p.alive) return;
@@ -153,6 +178,7 @@ function checkCollision(){
       for(let part of other.snake){
         if(head.x===part.x && head.y===part.y){
           p.alive = false;
+          beep(100);
         }
       }
     });
@@ -167,7 +193,6 @@ function draw(){
   ctx.fillStyle="red";
   ctx.fillRect(food.x,food.y,GRID,GRID);
 
-  // player
   players.forEach(p=>{
     if(!p.alive) return;
 
@@ -177,14 +202,14 @@ function draw(){
     });
   });
 
-  // UI score
+  // score
   ctx.fillStyle="white";
   players.forEach((p,i)=>{
-    ctx.fillText("P"+(i+1)+": "+p.score,10,20+(i*20));
+    ctx.fillText("P"+(i+1)+": "+p.score,10,20+i*20);
   });
 }
 
-// ===== GAME LOOP =====
+// ===== LOOP =====
 function gameLoop(){
   if(!game.running) return;
 
@@ -206,10 +231,9 @@ function endGame(winner){
   game.running = false;
   clearInterval(game.interval);
 
-  let bestScore = Math.max(...players.map(p=>p.score));
-
-  if(bestScore > game.highScore){
-    localStorage.setItem("snakeHigh", bestScore);
+  let best = Math.max(...players.map(p=>p.score));
+  if(best > game.highScore){
+    localStorage.setItem("snakeHigh", best);
   }
 
   setTimeout(()=>{
@@ -220,36 +244,40 @@ function endGame(winner){
 
 // ===== INPUT =====
 document.addEventListener("keydown", e=>{
-  let [p1,p2,p3,p4] = players;
+  let [p1,p2,p3] = players;
 
   if(p1){
-    if(e.key==="ArrowUp" && p1.dy===0){p1.dx=0;p1.dy=-GRID;}
-    if(e.key==="ArrowDown" && p1.dy===0){p1.dx=0;p1.dy=GRID;}
-    if(e.key==="ArrowLeft" && p1.dx===0){p1.dx=-GRID;p1.dy=0;}
-    if(e.key==="ArrowRight" && p1.dx===0){p1.dx=GRID;p1.dy=0;}
+    if(e.key==="ArrowUp"&&p1.dy===0){p1.dx=0;p1.dy=-GRID;}
+    if(e.key==="ArrowDown"&&p1.dy===0){p1.dx=0;p1.dy=GRID;}
+    if(e.key==="ArrowLeft"&&p1.dx===0){p1.dx=-GRID;p1.dy=0;}
+    if(e.key==="ArrowRight"&&p1.dx===0){p1.dx=GRID;p1.dy=0;}
   }
 
   if(p2){
-    if(e.key==="w" && p2.dy===0){p2.dx=0;p2.dy=-GRID;}
-    if(e.key==="s" && p2.dy===0){p2.dx=0;p2.dy=GRID;}
-    if(e.key==="a" && p2.dx===0){p2.dx=-GRID;p2.dy=0;}
-    if(e.key==="d" && p2.dx===0){p2.dx=GRID;p2.dy=0;}
+    if(e.key==="w"&&p2.dy===0){p2.dx=0;p2.dy=-GRID;}
+    if(e.key==="s"&&p2.dy===0){p2.dx=0;p2.dy=GRID;}
+    if(e.key==="a"&&p2.dx===0){p2.dx=-GRID;p2.dy=0;}
+    if(e.key==="d"&&p2.dx===0){p2.dx=GRID;p2.dy=0;}
   }
 
   if(p3){
-    if(e.key==="i" && p3.dy===0){p3.dx=0;p3.dy=-GRID;}
-    if(e.key==="k" && p3.dy===0){p3.dx=0;p3.dy=GRID;}
-    if(e.key==="j" && p3.dx===0){p3.dx=-GRID;p3.dy=0;}
-    if(e.key==="l" && p3.dx===0){p3.dx=GRID;p3.dy=0;}
-  }
-
-  if(p4){
-    if(e.key==="t" && p4.dy===0){p4.dx=0;p4.dy=-GRID;}
-    if(e.key==="g" && p4.dy===0){p4.dx=0;p4.dy=GRID;}
-    if(e.key==="f" && p4.dx===0){p4.dx=-GRID;p4.dy=0;}
-    if(e.key==="h" && p4.dx===0){p4.dx=GRID;p4.dy=0;}
+    if(e.key==="i"&&p3.dy===0){p3.dx=0;p3.dy=-GRID;}
+    if(e.key==="k"&&p3.dy===0){p3.dx=0;p3.dy=GRID;}
+    if(e.key==="j"&&p3.dx===0){p3.dx=-GRID;p3.dy=0;}
+    if(e.key==="l"&&p3.dx===0){p3.dx=GRID;p3.dy=0;}
   }
 });
+
+// HP hanya P1
+function setDir(x,y){
+  let p1 = players[0];
+  if(!p1) return;
+
+  if((x!==0 && p1.dx===0) || (y!==0 && p1.dy===0)){
+    p1.dx=x;
+    p1.dy=y;
+  }
+}
 </script>
 
 </body>
